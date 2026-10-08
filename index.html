@@ -152,7 +152,7 @@
     $("categories").innerHTML = categories.length ? categories.map((category, ci) => `
       <article class="category-card">
         <h3>Category ${ci + 1}</h3>
-        <div class="field"><label for="category-${ci}">Category name</label><input id="category-${ci}" value="${escapeHTML(category.name)}" placeholder="Science" /></div>
+        <div class="field"><label for="category-${ci}">Category name</label><input id="category-${ci}" value="${escapeHTML(category.name)}" placeholder="e.g. - Science" /></div>
         ${category.questions.map((item, qi) => `
           <div class="question-card">
             <div class="field"><label for="q-${ci}-${qi}">Question ${qi + 1}</label><textarea id="q-${ci}-${qi}" placeholder="Write the clue...">${escapeHTML(item.q)}</textarea></div>
