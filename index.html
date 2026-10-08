@@ -39,6 +39,9 @@
     .saved-board strong { display: block; }
     .saved-board small { color: #777; }
     .board-title { text-align: center; margin-bottom: 18px; }
+    .team-panel-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+    .team-panel-header label { margin: 0; }
+    .team-toggle { flex-shrink: 0; }
     .teams { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; margin-bottom: 14px; }
     .score-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
     .score-chip { flex: 1; min-width: 120px; padding: 10px; text-align: center; border: 1px solid #e0ddd5; border-radius: 9px; background: #fff; }
@@ -99,10 +102,15 @@
   <section id="game-screen" class="screen">
     <div id="board-view" class="game-view active">
       <div class="board-title"><h1 id="game-title"></h1><p>Choose a question. Progress is saved automatically on this device.</p></div>
-      <div class="panel">
-        <label>Team names</label>
-        <div id="team-inputs" class="teams"></div>
-        <button class="btn-secondary" onclick="addTeam()">+ Add team</button>
+      <div class="panel team-panel">
+        <div class="team-panel-header">
+          <label for="team-inputs">Team names</label>
+          <button id="team-toggle" class="btn-secondary team-toggle" type="button" aria-expanded="true" aria-controls="team-settings" onclick="toggleTeamNames()">Collapse</button>
+        </div>
+        <div id="team-settings">
+          <div id="team-inputs" class="teams"></div>
+          <button class="btn-secondary" onclick="addTeam()">+ Add team</button>
+        </div>
       </div>
       <div id="scores" class="score-bar"></div>
       <div id="board" class="board"></div>
@@ -195,10 +203,12 @@
     game = saved || { teams: ["Team 1", "Team 2"], scores: [0, 0], answered: board.categories.map(category => Array(category.questions.length).fill(false)) };
     if (game.answered.length !== board.categories.length) game.answered = board.categories.map(category => Array(category.questions.length).fill(false));
     game.answered = board.categories.map((category, ci) => category.questions.map((_, qi) => Boolean(game.answered[ci]?.[qi])));
-    renderTeams(); renderGame(); showGameView("board"); $("editor-screen").classList.remove("active"); $("game-screen").classList.add("active"); window.scrollTo({ top: 0, behavior: "smooth" });
+    renderTeams(); renderGame(); setTeamNamesExpanded(true); showGameView("board"); $("editor-screen").classList.remove("active"); $("game-screen").classList.add("active"); window.scrollTo({ top: 0, behavior: "smooth" });
   }
   function addTeam() { if (game.teams.length >= 8) return alert("You can have up to 8 teams."); game.teams.push(`Team ${game.teams.length + 1}`); game.scores.push(0); saveProgress(); renderTeams(); renderScores(); }
   function renderTeams() { $("team-inputs").innerHTML = game.teams.map((team, i) => `<input value="${escapeHTML(team)}" aria-label="Team ${i + 1}" onchange="renameTeam(${i}, this.value)" />`).join(""); }
+  function setTeamNamesExpanded(expanded) { $("team-settings").hidden = !expanded; $("team-toggle").setAttribute("aria-expanded", String(expanded)); $("team-toggle").textContent = expanded ? "Collapse" : "Expand"; }
+  function toggleTeamNames() { setTeamNamesExpanded($("team-settings").hidden); }
   function renameTeam(index, name) { game.teams[index] = name.trim() || `Team ${index + 1}`; saveProgress(); renderScores(); renderAwardGrid(); }
   function renderScores() { $("scores").innerHTML = game.teams.map((team, i) => `<div class="score-chip"><small>${escapeHTML(team)}</small><strong>${game.scores[i]} pts</strong></div>`).join(""); }
   function renderGame() {
