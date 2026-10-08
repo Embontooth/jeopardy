@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jeopardy Board Creator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; padding: 24px 16px; background: #f5f4f0; color: #1a1a1a; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .container { max-width: 980px; margin: 0 auto; }
+    .screen { display: none; }
+    .screen.active { display: block; }
+    header { text-align: center; margin-bottom: 24px; }
+    h1 { margin: 0 0 8px; font-size: 30px; }
+    h2 { margin: 0 0 16px; font-size: 21px; }
+    p { color: #666; }
+    .notice { padding: 12px 14px; border: 1px solid #d9d3fa; border-radius: 10px; background: #f0eefc; color: #3c3489; font-size: 14px; margin-bottom: 18px; }
+    .panel, .category-card, .question-card { background: #fff; border: 1px solid #e0ddd5; border-radius: 12px; padding: 18px; }
+    .panel { margin-bottom: 18px; }
+    label { display: block; margin: 0 0 6px; color: #666; font-size: 13px; font-weight: 600; }
+    input, textarea, select { width: 100%; border: 1px solid #d0cdc5; border-radius: 8px; background: #faf9f7; color: #1a1a1a; font: inherit; padding: 10px 12px; outline: none; }
+    textarea { min-height: 78px; resize: vertical; }
+    input:focus, textarea:focus, select:focus { border-color: #534ab7; box-shadow: 0 0 0 2px #eeedfe; }
+    .field { margin-bottom: 14px; }
+    .toolbar, .button-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    button { border: 0; border-radius: 9px; cursor: pointer; font: inherit; }
+    .btn-primary, .btn-success { padding: 11px 16px; color: #eeedfe; background: #3c3489; font-weight: 600; }
+    .btn-primary:hover { background: #534ab7; }
+    .btn-success { background: #0f6e56; color: #e1f5ee; }
+    .btn-success:hover { background: #1d9e75; }
+    .btn-secondary { padding: 10px 14px; color: #1a1a1a; background: #fff; border: 1px solid #d0cdc5; }
+    .btn-danger { padding: 8px 11px; color: #a22; background: #fff3f3; border: 1px solid #e8bcbc; }
+    .categories { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+    .category-card h3 { margin: 0 0 14px; color: #3c3489; }
+    .question-card { padding: 12px; margin-top: 10px; background: #faf9f7; }
+    .question-card .button-row { justify-content: flex-end; }
+    .saved-list { display: grid; gap: 8px; }
+    .saved-board { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px; border: 1px solid #e0ddd5; border-radius: 9px; background: #fff; }
+    .saved-board strong { display: block; }
+    .saved-board small { color: #777; }
+    .board-title { text-align: center; margin-bottom: 18px; }
+    .teams { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; margin-bottom: 14px; }
+    .score-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+    .score-chip { flex: 1; min-width: 120px; padding: 10px; text-align: center; border: 1px solid #e0ddd5; border-radius: 9px; background: #fff; }
+    .score-chip small { display: block; color: #888; }
+    .score-chip strong { font-size: 21px; }
+    .board { display: grid; grid-template-columns: repeat(var(--columns), minmax(0, 1fr)); gap: 6px; }
+    .cat-header, .q-btn { min-height: 54px; border-radius: 9px; display: flex; align-items: center; justify-content: center; text-align: center; }
+    .cat-header { padding: 8px; color: #eeedfe; background: #3c3489; font-size: 13px; font-weight: 600; }
+    .q-btn { padding: 8px 4px; color: #534ab7; background: #fff; border: 1px solid #e0ddd5; font-size: 16px; font-weight: 600; }
+    .q-btn:hover:not(:disabled) { background: #f0eefc; }
+    .q-btn:disabled { color: #bbb; background: #f5f4f0; cursor: default; }
+    .game-view { display: none; }
+    .game-view.active { display: block; }
+    .question-panel { max-width: 820px; margin: 0 auto; padding: 28px; border: 1px solid #e0ddd5; border-radius: 14px; background: #fff; }
+    .question-panel h2 { font-size: 24px; line-height: 1.5; margin: 14px 0 28px; font-weight: 500; }
+    .question-actions { display: flex; gap: 8px; margin-top: 18px; }
+    .question-actions > button { flex: 1; }
+    .answer { display: none; margin: 14px 0; padding: 12px; border: 1px solid #9fe1cb; border-radius: 9px; background: #f0faf5; color: #085041; }
+    .answer.visible { display: block; }
+    .award-grid { display: grid; gap: 8px; margin: 12px 0; }
+    .award-row { display: flex; align-items: center; gap: 8px; }
+    .award-row span { flex: 1; }
+    .award-row button { padding: 8px 11px; background: #fff; border: 1px solid #d0cdc5; }
+    .empty { padding: 14px; color: #777; text-align: center; border: 1px dashed #d0cdc5; border-radius: 9px; }
+    @media (max-width: 540px) { .board { gap: 3px; } .cat-header { font-size: 10px; } .q-btn { font-size: 13px; } .saved-board { align-items: flex-start; flex-direction: column; } }
+  </style>
+</head>
+<body>
+<main class="container">
+  <section id="editor-screen" class="screen active">
+    <header>
+      <h1>Jeopardy Board Creator</h1>
+      <p>Build a board, save it in this browser, then play it with your teams.</p>
+    </header>
+    <div class="panel">
+      <div class="field"><label for="board-title">Board title</label><input id="board-title" placeholder="My Jeopardy Board" /></div>
+      <div class="toolbar">
+        <button class="btn-secondary" onclick="addCategory()">+ Add category</button>
+        <button class="btn-secondary" onclick="loadExample()">Load example</button>
+        <button class="btn-secondary" onclick="clearEditor()">Clear</button>
+      </div>
+    </div>
+    <div id="categories" class="categories"></div>
+    <div class="panel" style="margin-top:18px">
+      <div class="button-row">
+        <button class="btn-primary" onclick="saveBoard()">Save board</button>
+        <button class="btn-success" onclick="playBoard()">Play this board</button>
+        <button class="btn-secondary" onclick="exportBoard()">Export JSON</button>
+        <label class="btn-secondary" style="display:inline-block;cursor:pointer">Import JSON<input id="import-file" type="file" accept=".json,application/json" hidden /></label>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>My saved boards</h2>
+      <div id="saved-boards" class="saved-list"></div>
+    </div>
+  </section>
+
+  <section id="game-screen" class="screen">
+    <div id="board-view" class="game-view active">
+      <div class="board-title"><h1 id="game-title"></h1><p>Choose a question. Progress is saved automatically on this device.</p></div>
+      <div class="panel">
+        <label>Team names</label>
+        <div id="team-inputs" class="teams"></div>
+        <button class="btn-secondary" onclick="addTeam()">+ Add team</button>
+      </div>
+      <div id="scores" class="score-bar"></div>
+      <div id="board" class="board"></div>
+      <div class="button-row" style="margin-top:18px"><button class="btn-secondary" onclick="backToEditor()">← Back to editor</button><button class="btn-danger" onclick="resetProgress()">Reset game progress</button></div>
+    </div>
+    <div id="question-view" class="game-view">
+      <div id="question-panel" class="question-panel">
+        <strong id="question-meta"></strong>
+        <h2 id="question-text"></h2>
+        <button id="reveal-btn" class="btn-secondary" onclick="revealAnswer()">Reveal answer</button>
+        <div id="answer" class="answer"></div>
+        <div id="awards" hidden>
+          <label>Award points</label>
+          <div id="award-grid" class="award-grid"></div>
+          <div class="question-actions">
+            <button class="btn-success" onclick="finishQuestion()">Finish question</button>
+          </div>
+        </div>
+        <button class="btn-secondary" style="width:100%;margin-top:10px" onclick="cancelQuestion()">← Back to board (no points)</button>
+      </div>
+    </div>
+  </section>
+</main>
+<script>
+  const STORAGE_KEY = "jeopardyCreatorBoards";
+  let categories = [], currentBoard = null, game = null, currentQuestion = null, pendingAwards = [];
+  const $ = id => document.getElementById(id);
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const escapeHTML = value => String(value).replace(/[&<>"']/g, char => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[char]));
+
+  function addCategory(category = { name: "", questions: [] }) {
+    if (categories.length >= 8) return alert("A board can have up to 8 categories.");
+    category.questions = Array.from({ length: Math.max(1, Math.min(5, category.questions.length || 5)) }, (_, i) => category.questions[i] || { q: "", a: "" });
+    categories.push(category);
+    renderEditor();
+  }
+  function removeCategory(index) { categories.splice(index, 1); renderEditor(); }
+  function addQuestion(categoryIndex) { categories[categoryIndex].questions.push({ q: "", a: "" }); renderEditor(); }
+  function removeQuestion(categoryIndex, questionIndex) { categories[categoryIndex].questions.splice(questionIndex, 1); renderEditor(); }
+  function readEditor() {
+    categories.forEach((category, ci) => {
+      category.name = $(`category-${ci}`).value.trim();
+      category.questions = category.questions.map((item, qi) => ({ q: $(`q-${ci}-${qi}`).value.trim(), a: $(`a-${ci}-${qi}`).value.trim() }));
+    });
+  }
+  function renderEditor() {
+    $("categories").innerHTML = categories.length ? categories.map((category, ci) => `
+      <article class="category-card">
+        <h3>Category ${ci + 1}</h3>
+        <div class="field"><label for="category-${ci}">Category name</label><input id="category-${ci}" value="${escapeHTML(category.name)}" placeholder="Science" /></div>
+        ${category.questions.map((item, qi) => `
+          <div class="question-card">
+            <div class="field"><label for="q-${ci}-${qi}">Question ${qi + 1}</label><textarea id="q-${ci}-${qi}" placeholder="Write the clue...">${escapeHTML(item.q)}</textarea></div>
+            <div class="field"><label for="a-${ci}-${qi}">Answer</label><input id="a-${ci}-${qi}" value="${escapeHTML(item.a)}" placeholder="Correct answer" /></div>
+            <div class="button-row"><button class="btn-danger" onclick="removeQuestion(${ci},${qi})">Remove question</button></div>
+          </div>`).join("")}
+        <div class="button-row" style="margin-top:10px"><button class="btn-secondary" onclick="addQuestion(${ci})">+ Add question</button><button class="btn-danger" onclick="removeCategory(${ci})">Remove category</button></div>
+      </article>`).join("") : '<div class="empty">Add a category to start building your board.</div>';
+  }
+  function validateBoard() {
+    readEditor();
+    if (!$("board-title").value.trim()) return alert("Please enter a board title.");
+    if (categories.length < 1) return alert("Add at least one category.");
+    if (categories.some(category => !category.name || !category.questions.length || category.questions.some(item => !item.q || !item.a))) return alert("Every category needs a name, and every question needs both a clue and an answer.");
+    return true;
+  }
+  function boardData() { return { id: currentBoard?.id || uid(), title: $("board-title").value.trim(), categories: JSON.parse(JSON.stringify(categories)), updatedAt: new Date().toISOString() }; }
+  function savedBoards() { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); }
+  function saveBoard() {
+    if (!validateBoard()) return;
+    const board = boardData(), boards = savedBoards().filter(item => item.id !== board.id);
+    boards.unshift(board); localStorage.setItem(STORAGE_KEY, JSON.stringify(boards.slice(0, 20))); currentBoard = board; renderSavedBoards(); alert("Board saved in this browser.");
+  }
+  function renderSavedBoards() {
+    const boards = savedBoards();
+    $("saved-boards").innerHTML = boards.length ? boards.map(board => `<div class="saved-board"><div><strong>${escapeHTML(board.title)}</strong><small>${board.categories.length} categories · ${new Date(board.updatedAt).toLocaleDateString()}</small></div><div class="button-row"><button class="btn-secondary" onclick="editSaved('${board.id}')">Edit</button><button class="btn-success" onclick="playSaved('${board.id}')">Play</button><button class="btn-danger" onclick="deleteSaved('${board.id}')">Delete</button></div></div>`).join("") : '<div class="empty">No saved boards yet.</div>';
+  }
+  function editSaved(id) { const board = savedBoards().find(item => item.id === id); if (!board) return; currentBoard = board; $("board-title").value = board.title; categories = JSON.parse(JSON.stringify(board.categories)); renderEditor(); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  function deleteSaved(id) { localStorage.setItem(STORAGE_KEY, JSON.stringify(savedBoards().filter(board => board.id !== id))); renderSavedBoards(); }
+  function clearEditor() { currentBoard = null; $("board-title").value = ""; categories = []; renderEditor(); }
+  function loadExample() { $("board-title").value = "My General Knowledge Board"; categories = [{ name: "History", questions: [{ q: "Who was the first president of the United States?", a: "George Washington" }, { q: "In which year did the moon landing happen?", a: "1969" }] }, { name: "Nature", questions: [{ q: "What is the largest mammal?", a: "Blue whale" }, { q: "What gas do plants absorb?", a: "Carbon dioxide" }] }]; renderEditor(); }
+  function exportBoard() { if (!validateBoard()) return; const blob = new Blob([JSON.stringify(boardData(), null, 2)], { type: "application/json" }), link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `${boardData().title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.json`; link.click(); URL.revokeObjectURL(link.href); }
+  $("import-file").addEventListener("change", event => { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => { try { const board = JSON.parse(reader.result); if (!board.title || !Array.isArray(board.categories)) throw new Error(); currentBoard = board; $("board-title").value = board.title; categories = board.categories; renderEditor(); } catch { alert("That file is not a valid Jeopardy board."); } }; reader.readAsText(file); event.target.value = ""; });
+
+  function playBoard() { if (!validateBoard()) return; currentBoard = boardData(); startGame(currentBoard); }
+  function playSaved(id) { const board = savedBoards().find(item => item.id === id); if (board) { currentBoard = board; startGame(board); } }
+  function startGame(board) {
+    $("game-title").textContent = board.title;
+    const progressKey = `jeopardyProgress-${board.id}`, saved = JSON.parse(localStorage.getItem(progressKey) || "null");
+    game = saved || { teams: ["Team 1", "Team 2"], scores: [0, 0], answered: board.categories.map(category => Array(category.questions.length).fill(false)) };
+    if (game.answered.length !== board.categories.length) game.answered = board.categories.map(category => Array(category.questions.length).fill(false));
+    game.answered = board.categories.map((category, ci) => category.questions.map((_, qi) => Boolean(game.answered[ci]?.[qi])));
+    renderTeams(); renderGame(); showGameView("board"); $("editor-screen").classList.remove("active"); $("game-screen").classList.add("active"); window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  function addTeam() { if (game.teams.length >= 8) return alert("You can have up to 8 teams."); game.teams.push(`Team ${game.teams.length + 1}`); game.scores.push(0); saveProgress(); renderTeams(); renderScores(); }
+  function renderTeams() { $("team-inputs").innerHTML = game.teams.map((team, i) => `<input value="${escapeHTML(team)}" aria-label="Team ${i + 1}" onchange="renameTeam(${i}, this.value)" />`).join(""); }
+  function renameTeam(index, name) { game.teams[index] = name.trim() || `Team ${index + 1}`; saveProgress(); renderScores(); renderAwardGrid(); }
+  function renderScores() { $("scores").innerHTML = game.teams.map((team, i) => `<div class="score-chip"><small>${escapeHTML(team)}</small><strong>${game.scores[i]} pts</strong></div>`).join(""); }
+  function renderGame() {
+    const board = $("board"); board.style.setProperty("--columns", currentBoard.categories.length); board.innerHTML = "";
+    currentBoard.categories.forEach((category, ci) => { const header = document.createElement("div"); header.className = "cat-header"; header.textContent = category.name; board.appendChild(header); });
+    const rows = Math.max(...currentBoard.categories.map(category => category.questions.length));
+    for (let qi = 0; qi < rows; qi++) currentBoard.categories.forEach((category, ci) => { const button = document.createElement("button"); button.className = "q-btn"; button.textContent = `${(qi + 1) * 100}`; button.disabled = !category.questions[qi] || game.answered[ci][qi]; button.onclick = () => openQuestion(ci, qi); board.appendChild(button); });
+    renderScores();
+  }
+  function showGameView(view) { document.querySelectorAll(".game-view").forEach(item => item.classList.remove("active")); $(`${view}-view`).classList.add("active"); }
+  function openQuestion(ci, qi) { currentQuestion = { ci, qi, points: (qi + 1) * 100 }; pendingAwards = game.teams.map(() => 0); const item = currentBoard.categories[ci].questions[qi]; $("question-meta").textContent = `${currentBoard.categories[ci].name} · ${currentQuestion.points} points`; $("question-text").textContent = item.q; $("answer").textContent = `Answer: ${item.a}`; $("answer").classList.remove("visible"); $("awards").hidden = true; $("reveal-btn").hidden = false; showGameView("question"); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  function revealAnswer() { $("answer").classList.add("visible"); $("awards").hidden = false; $("reveal-btn").hidden = true; renderAwardGrid(); }
+  function renderAwardGrid() { $("award-grid").innerHTML = game.teams.map((team, i) => { const selected = pendingAwards[i]; return `<div class="award-row"><span>${escapeHTML(team)}</span><button style="${selected === currentQuestion.points ? "background:#3c3489;color:#eeedfe" : ""}" onclick="award(${i},${currentQuestion.points})">+${currentQuestion.points}</button><button style="${selected === -currentQuestion.points ? "background:#a22;color:#fff" : ""}" onclick="award(${i},${-currentQuestion.points})">−${currentQuestion.points}</button></div>`; }).join(""); }
+  function award(teamIndex, points) { pendingAwards[teamIndex] = pendingAwards[teamIndex] === points ? 0 : points; renderAwardGrid(); }
+  function cancelQuestion() { pendingAwards = []; showGameView("board"); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  function finishQuestion() { pendingAwards.forEach((points, i) => { game.scores[i] += points; }); game.answered[currentQuestion.ci][currentQuestion.qi] = true; saveProgress(); pendingAwards = []; renderGame(); showGameView("board"); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  function saveProgress() { if (currentBoard && game) localStorage.setItem(`jeopardyProgress-${currentBoard.id}`, JSON.stringify(game)); }
+  function resetProgress() { if (!confirm("Reset scores and unanswered questions for this board?")) return; localStorage.removeItem(`jeopardyProgress-${currentBoard.id}`); startGame(currentBoard); }
+  function backToEditor() { $("game-screen").classList.remove("active"); $("editor-screen").classList.add("active"); renderSavedBoards(); }
+  function renderEditorAndSaved() { renderEditor(); renderSavedBoards(); }
+  addCategory(); renderEditorAndSaved();
+</script>
+</body>
+</html>
